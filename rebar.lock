@@ -1,0 +1,4 @@
+[{<<"recon">>,
+  {git,"https://github.com/ferd/recon.git",
+       {ref,"75d70c7c08926d2f24f1ee6de14ee50fe8a52763"}},
+  0}].
