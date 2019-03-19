@@ -7,7 +7,8 @@
 
 -export([start_link/0]).
 
--record(state, {in_socket,
+-record(state, {listen_socket,
+                in_socket,
                 out_socket}).
 
 start_link() ->
@@ -24,36 +25,44 @@ handle_cast(_Call, State) ->
     {noreply, State}.
 
 handle_info(listen, State) ->
-    recon_trace:calls({ssl_certificate, '_', '_'}, 10),
     Priv = code:priv_dir(mite),
     CertFile = filename:join([Priv, "cert.pem"]),
     KeyFile = filename:join([Priv, "key.pem"]),
+    {ok, P} = application:get_env(in_port),
     {ok, _} = file:read_file(KeyFile),
-    io:format("cert: ~p~n", [CertFile]),
-    {ok, S} = ssl:listen(8081, [{certfile, CertFile}, {keyfile, KeyFile}, {active, false}, {ciphers, [{rsa,
-                                                                                                       aes_128_cbc,
-                                                                                                        sha,
-                                                                                                        default_prf}]}
+    {ok, S} = ssl:listen(P, [{certfile, CertFile}, {keyfile, KeyFile}, {active, false}, {ciphers, [{rsa,
+                                                                                                    aes_128_cbc,
+                                                                                                    sha,
+                                                                                                    default_prf}]}
                                ]),
-    {ok, SS} = ssl:transport_accept(S),
+    self() ! accept,
+    {noreply, State#state{listen_socket = S}};
+handle_info(accept, State) ->
+    {ok, SS} = ssl:transport_accept(State#state.listen_socket),
     ok = ssl:ssl_accept(SS),
     self() ! start_connection,
     ssl:setopts(SS, [{active, true}]),
-    %% {ok, S} = gen_tcp:listen(8081, [{active, true}]),
-    %% {ok, SS} = gen_tcp:accept(S),
     io:format("~p~n", ["Connected"]),
     {noreply, State#state{in_socket = SS}};
 handle_info(start_connection, State) ->
-    {ok, S} = gen_tcp:connect({127, 0, 0, 1}, 8080, [{active, true}]),
+    {ok, P} = application:get_env(out_port),
+    {ok, H} = application:get_env(out_host),
+    {ok, S} = ssl:connect(H, P, [{active, true}]),
     {noreply, State#state{out_socket = S}};
 
-handle_info({tcp, InS, Data}, #state{in_socket = InS}=State) ->
-    %% ok = gen_tcp:send(#state.out_socket, Data),
+handle_info({ssl, OutS, Data}, #state{out_socket = OutS}=State) ->
+    ok = ssl:send(State#state.in_socket, Data),
     {noreply, State};
-handle_info({ssl, _, Data}, State) ->
-    ok = gen_tcp:send(State#state.out_socket, Data),
+handle_info({ssl, InS, Data}, #state{in_socket=InS}=State) ->
+    ok = ssl:send(State#state.out_socket, Data),
     {noreply, State};
-
+handle_info({ssl_closed, _}, State) ->
+    ssl:close(State#state.out_socket),
+    ssl:close(State#state.in_socket),
+    %% timer:sleep(5000),
+    self() ! accept,
+    {noreply, State#state{out_socket = undefied,
+                          in_socket = undefied}};
 handle_info(Info, State) ->
     io:format("~p~n", [Info]),
     {noreply, State}.
