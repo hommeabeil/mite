@@ -57,8 +57,8 @@ handle_info({ssl, InS, Data}, #state{in_socket=InS}=State) ->
     ok = ssl:send(State#state.out_socket, Data),
     {noreply, State};
 handle_info({ssl_closed, _}, State) ->
-    ssl:close(State#state.out_socket),
-    ssl:close(State#state.in_socket),
+    dirty_close(State#state.out_socket),
+    dirty_close(State#state.in_socket),
     %% timer:sleep(5000),
     self() ! accept,
     {noreply, State#state{out_socket = undefied,
@@ -66,3 +66,9 @@ handle_info({ssl_closed, _}, State) ->
 handle_info(Info, State) ->
     io:format("~p~n", [Info]),
     {noreply, State}.
+
+
+dirty_close(undefied) ->
+    ok;
+dirty_close(S) ->
+    ssl:close(S).
