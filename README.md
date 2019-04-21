@@ -21,4 +21,7 @@ update-ca-certificates
 
 Modify the host file
 --------------------
-`127.0.2.1 your.target.proxy`
+Add a line to your hosts file
+```sh
+echo '127.0.2.1 your.target.proxy' >> /etc/hosts
+```
