@@ -1,9 +1,4 @@
-%%%-------------------------------------------------------------------
-%% @doc mite top level supervisor.
-%% @end
-%%%-------------------------------------------------------------------
-
--module(mite_sup).
+-module(mite_client_sup).
 
 -behaviour(supervisor).
 
@@ -19,6 +14,7 @@
 %% API functions
 %%====================================================================
 
+-spec start_link() -> {ok, pid()} | {error, term()} | ignore.
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
@@ -28,14 +24,9 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, Clients} = application:get_env(mite, clients),
-    Childs = lists:map(fun to_client/1, Clients),
-    {ok, {{one_for_one, 5, 30}, Childs}}.
+    {ok, {{one_for_all, 5, 30},
+          []}}.
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
-
-to_client(#{in_port := InPort}=Client) ->
-    #{id => InPort,
-      start => {mite_client, start_link, [Client]}}.
