@@ -13,7 +13,7 @@
                 out_socket}).
 
 start_link(Config) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Config], []).
+    gen_server:start_link(?MODULE, [Config], []).
 
 init([Config]) ->
     process_flag(trap_exit, true),

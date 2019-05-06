@@ -8,15 +8,24 @@ Build
 
     $ rebar3 compile
     
+    
+    
+Generate Certificate
+--------------------
+
+```sh
+openssl req -x509 -new -key key.pem -out cert.pem -extensions req_ext -config mite.conf
+```
+
 Install Certificate
 -------------------
 
 ```sh
-mkdir /usr/share/ca-certificates/mite
-chmod 755 /usr/share/ca-certificates/mite
-cp apps/mite/priv/cert.pem /usr/share/ca-certificates/mite/mite.crt
-chmod 644 /usr/share/ca-certificates/mite/mite.crt
-update-ca-certificates
+mkdir /usr/local/share/ca-certificates/mite
+chmod 755 /usr/local/share/ca-certificates/mite
+cp apps/mite/priv/cert.pem /usr/local/share/ca-certificates/mite/mite.crt
+chmod 644 /usr/local/share/ca-certificates/mite/mite.crt
+update-ca-certificates -f
 ```
 
 Modify the host file
