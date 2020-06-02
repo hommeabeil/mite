@@ -40,7 +40,14 @@ handle_info({ssl, OutS, Data}, #state{out_socket = OutS}=State) ->
 handle_info({ssl, InS, Data}, #state{in_socket=InS}=State) ->
     ok = ssl:send(State#state.out_socket, Data),
     {noreply, State};
-handle_info({ssl_closed, _}, State) ->
+handle_info({ssl_closed, S}, #state{in_socket=In, out_socket=Out}=State) ->
+    case S of
+        In ->
+            io:format(user, "[Module:~p Line:~p] ~p~n", [?MODULE, ?LINE, "Close from client"]);
+        Out ->
+            io:format(user, "[Module:~p Line:~p] ~p~n", [?MODULE, ?LINE, "Close from remote"])
+    end,
+
     dirty_close(State#state.out_socket),
     dirty_close(State#state.in_socket),
     %% timer:sleep(5000),
