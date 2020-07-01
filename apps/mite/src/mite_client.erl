@@ -1,4 +1,5 @@
 -module(mite_client).
+-include_lib("kernel/include/logger.hrl").
 
 -export([init/1,
          handle_call/3,
@@ -39,19 +40,21 @@ handle_info(listen, #state{config = #{in_port := P}}=State) ->
                                          sha,
                                          default_prf}]}
                             ]),
+    ?LOG_NOTICE(#{what => listen, port => P}),
     self() ! accept,
     {noreply, State#state{listen_socket = S}};
-handle_info(accept, State) ->
+handle_info(accept, #state{config = #{in_port := P}}=State) ->
     {ok, SS} = ssl:transport_accept(State#state.listen_socket),
-    ok = ssl:ssl_accept(SS),
+    ?LOG_DEBUG(#{what => "Starting Handshake", side => client, port => P}),
+    {ok, SS} = ssl:handshake(SS),
+    ?LOG_DEBUG(#{what => "Handshake succeed", side => client, port => P}),
     {ok, Pid} = mite_proxy:start_link(State#state.config),
     unlink(Pid),
     ok = ssl:controlling_process(SS, Pid),
     ok = mite_proxy:connect(Pid, SS),
     self() ! accept,
-    io:format(user, "[Module:~p Line:~p] ~p~n", [?MODULE, ?LINE, "Connected"]),
     {noreply, State};
 
 handle_info(Info, State) ->
-    io:format(user, "[Module:~p Line:~p] ~p~n", [?MODULE, ?LINE, Info]),
+    ?LOG_NOTICE(#{what => message, message => Info}),
     {noreply, State}.

@@ -1,5 +1,5 @@
 {application, mite,
- [{description, "An OTP application"},
+ [{description, "A TLS proxy used for debuging purpose"},
   {vsn, "0.1.0"},
   {registered, []},
   {mod, { mite_app, []}},

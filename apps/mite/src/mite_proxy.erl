@@ -1,4 +1,5 @@
 -module(mite_proxy).
+-include_lib("kernel/include/logger.hrl").
 
 -behavior(gen_server).
 
@@ -40,21 +41,21 @@ handle_info({ssl, OutS, Data}, #state{out_socket = OutS}=State) ->
 handle_info({ssl, InS, Data}, #state{in_socket=InS}=State) ->
     ok = ssl:send(State#state.out_socket, Data),
     {noreply, State};
-handle_info({ssl_closed, S}, #state{in_socket=In, out_socket=Out}=State) ->
+handle_info({ssl_closed, S}, #state{in_socket=In, out_socket=Out, config=Config}=State) ->
+    #{out_port := OutPort, in_port := InPort, out_host := Host} = Config,
     case S of
         In ->
-            io:format(user, "[Module:~p Line:~p] ~p~n", [?MODULE, ?LINE, "Close from client"]);
+            ?LOG_NOTICE(#{what => "Connection close", closed_by => client, config => Config});
         Out ->
-            io:format(user, "[Module:~p Line:~p] ~p~n", [?MODULE, ?LINE, "Close from remote"])
+            ?LOG_NOTICE(#{what => "Connection close", closed_by => remote, config => Config})
     end,
 
     dirty_close(State#state.out_socket),
     dirty_close(State#state.in_socket),
-    %% timer:sleep(5000),
     {stop, normal, State#state{out_socket = undefied,
                                in_socket = undefied}};
 handle_info(Info, State) ->
-    io:format(user, "[Module:~p Line:~p] ~p~n", [?MODULE, ?LINE, Info]),
+    ?LOG_NOTICE(#{what => message, message => Info}),
     {noreply, State}.
 
 
@@ -68,7 +69,10 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({connect, InSocket}, #state{config = Config}=State) ->
     #{out_port := P, out_host := H} = Config,
+    ?LOG_DEBUG(#{what => try_connect, host => H, port => P}),
+    %% {ok, S} = ssl:connect(H, P, [{active, true}, {server_name_indication, "www.genetec.com"}]),
     {ok, S} = ssl:connect(H, P, [{active, true}]),
+    ?LOG_NOTICE(#{what => connected, config => Config}),
     ssl:setopts(InSocket, [{active, true}]),
     {noreply, State#state{in_socket = InSocket, out_socket = S}};
 handle_cast(_Request, State) ->
