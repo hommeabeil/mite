@@ -36,6 +36,6 @@ init([]) ->
 %% Internal functions
 %%====================================================================
 
-to_client(#{in_port := InPort}=Client) ->
+to_client(#{local_port := InPort}=Client) ->
     #{id => InPort,
       start => {mite_client, start_link, [Client]}}.

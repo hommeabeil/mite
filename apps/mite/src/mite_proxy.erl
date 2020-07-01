@@ -42,7 +42,7 @@ handle_info({ssl, InS, Data}, #state{in_socket=InS}=State) ->
     ok = ssl:send(State#state.out_socket, Data),
     {noreply, State};
 handle_info({ssl_closed, S}, #state{in_socket=In, out_socket=Out, config=Config}=State) ->
-    #{out_port := OutPort, in_port := InPort, out_host := Host} = Config,
+    #{remote_port := OutPort, local_port := InPort, remote_host := Host} = Config,
     case S of
         In ->
             ?LOG_NOTICE(#{what => "Connection close", closed_by => client, config => Config});
@@ -68,12 +68,18 @@ handle_call(_Request, _From, State) ->
     {noreply, State}.
 
 handle_cast({connect, InSocket}, #state{config = Config}=State) ->
-    #{out_port := P, out_host := H} = Config,
+    #{remote_port := P, remote_host := H} = Config,
     ?LOG_DEBUG(#{what => try_connect, host => H, port => P}),
-    %% {ok, S} = ssl:connect(H, P, [{active, true}, {server_name_indication, "www.genetec.com"}]),
-    {ok, S} = ssl:connect(H, P, [{active, true}]),
+    SSLOptions = generate_options(Config),
+    {ok, S} = ssl:connect(H, P, [{active, true}] ++ SSLOptions),
     ?LOG_NOTICE(#{what => connected, config => Config}),
     ssl:setopts(InSocket, [{active, true}]),
     {noreply, State#state{in_socket = InSocket, out_socket = S}};
 handle_cast(_Request, State) ->
     {noreply, State}.
+
+generate_options(#{sni := SNI}) ->
+    [{server_name_indication, SNI}];
+generate_options(_) ->
+    [].
+

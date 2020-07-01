@@ -27,7 +27,7 @@ handle_call(_Call, _From, State) ->
 handle_cast(_Call, State) ->
     {noreply, State}.
 
-handle_info(listen, #state{config = #{in_port := P}}=State) ->
+handle_info(listen, #state{config = #{local_port := P}}=State) ->
     Priv = code:priv_dir(mite),
     CertFile = filename:join([Priv, "cert.pem"]),
     KeyFile = filename:join([Priv, "key.pem"]),
@@ -43,7 +43,7 @@ handle_info(listen, #state{config = #{in_port := P}}=State) ->
     ?LOG_NOTICE(#{what => listen, port => P}),
     self() ! accept,
     {noreply, State#state{listen_socket = S}};
-handle_info(accept, #state{config = #{in_port := P}}=State) ->
+handle_info(accept, #state{config = #{local_port := P}}=State) ->
     {ok, SS} = ssl:transport_accept(State#state.listen_socket),
     ?LOG_DEBUG(#{what => "Starting Handshake", side => client, port => P}),
     {ok, SS} = ssl:handshake(SS),
