@@ -46,12 +46,17 @@ handle_info(listen, #state{config = #{local_port := P}}=State) ->
 handle_info(accept, #state{config = #{local_port := P}}=State) ->
     {ok, SS} = ssl:transport_accept(State#state.listen_socket),
     ?LOG_DEBUG(#{what => "Starting Handshake", side => client, port => P}),
-    {ok, SS} = ssl:handshake(SS),
-    ?LOG_DEBUG(#{what => "Handshake succeed", side => client, port => P}),
-    {ok, Pid} = mite_proxy:start_link(State#state.config),
-    unlink(Pid),
-    ok = ssl:controlling_process(SS, Pid),
-    ok = mite_proxy:connect(Pid, SS),
+    case ssl:handshake(SS) of
+	{ok, SS} ->
+            ?LOG_DEBUG(#{what => "Handshake succeed", side => client, port => P}),
+            {ok, Pid} = mite_proxy:start_link(State#state.config),
+            unlink(Pid),
+            ok = ssl:controlling_process(SS, Pid),
+            ok = mite_proxy:connect(Pid, SS);
+        {error, _}=E ->
+            ?LOG_ERROR(#{what => "Handshake failed", side => client, reason => E}),
+            ok
+    end,
     self() ! accept,
     {noreply, State};
 

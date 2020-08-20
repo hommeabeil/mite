@@ -62,7 +62,8 @@ handle_info(Info, State) ->
 dirty_close(undefied) ->
     ok;
 dirty_close(S) ->
-    ssl:close(S).
+    ?LOG_DEBUG(#{what => closing}),
+    ssl:shutdown(S, read_write).
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.
