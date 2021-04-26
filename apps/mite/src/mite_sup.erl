@@ -38,4 +38,4 @@ init([]) ->
 
 to_client(#{local_port := InPort}=Client) ->
     #{id => InPort,
-      start => {mite_client, start_link, [Client]}}.
+      start => {mite_server, start_link, [Client]}}.

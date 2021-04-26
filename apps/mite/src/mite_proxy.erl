@@ -73,14 +73,14 @@ handle_cast({connect, InSocket}, #state{config = Config}=State) ->
     ?LOG_DEBUG(#{what => try_connect, host => H, port => P}),
     SSLOptions = generate_options(Config),
     {ok, S} = ssl:connect(H, P, [{active, true}] ++ SSLOptions),
-    ?LOG_NOTICE(#{what => connected, config => Config}),
+    ?LOG_NOTICE(#{what => connected, config => Config, ssl_options => SSLOptions}),
     ssl:setopts(InSocket, [{active, true}]),
     {noreply, State#state{in_socket = InSocket, out_socket = S}};
 handle_cast(_Request, State) ->
     {noreply, State}.
 
 generate_options(#{sni := SNI}) ->
-    [{server_name_indication, SNI}];
+    [{server_name_indication, SNI}, {versions, ['tlsv1.2', 'tlsv1.1']}];
 generate_options(_) ->
     [].
 
