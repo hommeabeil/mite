@@ -1,4 +1,4 @@
--module(mite_client).
+-module(mite_acceptor).
 -include_lib("kernel/include/logger.hrl").
 
 -export([
