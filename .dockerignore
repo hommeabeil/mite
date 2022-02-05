@@ -1,0 +1,5 @@
+_build/
+Dockerfile
+.git/
+README.md
+LICENSE

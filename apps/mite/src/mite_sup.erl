@@ -28,8 +28,16 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, Clients} = application:get_env(mite, clients),
-    Childs = lists:map(fun to_client/1, Clients),
+    {ok, Connections} =
+        case mite_config:from_env() of
+            {ok, _} = C ->
+                C;
+            ok ->
+                application:get_env(mite, clients);
+            {error, _} = E ->
+                E
+        end,
+    Childs = lists:map(fun to_client/1, Connections),
     {ok, {{one_for_one, 5, 30}, Childs}}.
 
 %%====================================================================
