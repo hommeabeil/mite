@@ -34,12 +34,17 @@ handle_info(listen, #state{config = #{local_port := P}} = State) ->
     CertFile = filename:join([Priv, "cert.pem"]),
     KeyFile = filename:join([Priv, "key.pem"]),
     {ok, _} = file:read_file(KeyFile),
-    {ok, S} = ssl:listen(P, [
-        {certfile, CertFile},
-        {keyfile, KeyFile},
-        {active, false},
-        {ciphers, [{rsa, aes_128_cbc, sha, default_prf}]}
-    ]),
+
+    Ciphers = ciphers_rsa(),
+
+    ?LOG_INFO(#{suppoted_ciphers => Ciphers}),
+
+    {ok, S} = ssl:listen(P, [{certfile, CertFile},
+                             {keyfile, KeyFile},
+                             {active, false},
+                             {ciphers, Ciphers},
+                             {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}
+                            ]),
     ?LOG_NOTICE(#{what => listen, port => P}),
     self() ! accept,
     {noreply, State#state{listen_socket = S}};
@@ -59,6 +64,13 @@ handle_info(accept, #state{config = #{local_port := P}} = State) ->
     end,
     self() ! accept,
     {noreply, State};
+
 handle_info(Info, State) ->
     ?LOG_NOTICE(#{what => message, message => Info}),
     {noreply, State}.
+
+ciphers_rsa() ->
+    CiphersV2 = ssl:cipher_suites(all, 'tlsv1.2'),
+    ssl:filter_cipher_suites(CiphersV2, [{key_exchange, fun(rsa) -> true;
+                                                           (_) -> false
+                                                        end}]).
