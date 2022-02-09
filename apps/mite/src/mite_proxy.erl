@@ -47,7 +47,6 @@ handle_info({ssl, InS, Data}, #state{in_socket = InS} = State) ->
     ok = ssl:send(State#state.out_socket, Data),
     {noreply, State};
 handle_info({ssl_closed, S}, #state{in_socket = In, out_socket = Out, config = Config} = State) ->
-    #{remote_port := OutPort, local_port := InPort, remote_host := Host} = Config,
     case S of
         In ->
             ?LOG_NOTICE(#{what => "Connection close", closed_by => client, config => Config});

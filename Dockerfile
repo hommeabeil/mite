@@ -1,4 +1,4 @@
-FROM erlang:21
+FROM erlang:23
 
 COPY . /opt/mite
 
