@@ -87,4 +87,4 @@ handle_cast(_Request, State) ->
 generate_options(#{sni := SNI}) ->
     [{server_name_indication, SNI}, {versions, ['tlsv1.2', 'tlsv1.1']}];
 generate_options(_) ->
-    [].
+    [{versions, ['tlsv1.2', 'tlsv1.1']}].
